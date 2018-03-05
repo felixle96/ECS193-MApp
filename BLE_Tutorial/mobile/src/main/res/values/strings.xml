@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">BLE_Tutorial</string>
+    <string name="ble_not_supported">Ble is not supported!</string>
+    <string name="unknown_device">Unknown Device!</string>
+    <string name="title_devices">Scanning for Devices</string>
+    <string name="bluetooth_not_supported">Bluetooth is not supported (adapter not found)!</string>
+</resources>
