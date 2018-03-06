@@ -9,6 +9,7 @@
 package com.example.felix.ble_tutorial;
 
 import android.Manifest;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -24,6 +25,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -71,6 +73,7 @@ public class DeviceScanActivity extends AppCompatActivity {
         //getActionBar().setTitle(R.string.title_devices);
         mHandler = new Handler();
         mListView = findViewById(R.id.list);
+        mListView.setOnItemClickListener(devicesClickListener);
 
         /**
          * Check whether BLE is supported on the device. You can then
@@ -214,6 +217,40 @@ public class DeviceScanActivity extends AppCompatActivity {
         scanLeDevice(true);
     }
 
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // User chose not to enable Bluetooth.
+        if (requestCode == REQUEST_ENABLE_BT && resultCode == Activity.RESULT_CANCELED) {
+            finish();
+            return;
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        scanLeDevice(false);
+        mLeDeviceListAdapter.clear();
+    }
+
+
+    ListView.OnItemClickListener devicesClickListener = new ListView.OnItemClickListener() {
+        @Override
+        public void onItemClick(AdapterView<?> l, View v, int position, long id) {
+            final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
+            if(device == null) return;
+            final Intent intent = new Intent(DeviceScanActivity.this, DeviceControlActivity.class);
+            intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
+            intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
+            if (mScanning) {
+                mBluetoothAdapter.stopLeScan(mLeScanCallback);
+                mScanning = false;
+            }
+            startActivity(intent);
+        }
+    };
     /**
      * scanLeDevice()
      * Scans for BLE devices only when scan is enabled.

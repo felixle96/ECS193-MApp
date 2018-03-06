@@ -14,6 +14,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.UUID;
 
@@ -96,10 +97,14 @@ public class BluetoothLeService extends Service {
         final byte[] data = characteristic.getValue();
         if (data != null && data.length > 0) {
             final StringBuilder stringBuilder = new StringBuilder(data.length);
-            for (byte byteChar : data)
-                stringBuilder.append(String.format("%02X ", byteChar));
+            //for (int i = 0; i < data.length && i < 15; i += 4) {
+            //    stringBuilder.append(String.format("%02X ", data[i]));
+            //}
+            ByteBuffer floatBuffer = ByteBuffer.wrap(data);
 
-            intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+            intent.putExtra(EXTRA_DATA, new String(data) + "\n" + String.valueOf(floatBuffer.getFloat())
+            + " " + String.valueOf(floatBuffer.getFloat()) + " " + String.valueOf(floatBuffer.getFloat())
+            + " " + String.valueOf(floatBuffer.getFloat()));
         }
 
         sendBroadcast(intent);
@@ -150,6 +155,12 @@ public class BluetoothLeService extends Service {
                 Log.e(TAG, "Unable to initialize BluetoothManager.");
                 return false;
             }
+        }
+
+        mBluetoothAdapter = mBluetoothManager.getAdapter();
+        if(mBluetoothAdapter == null) {
+            Log.e(TAG, "Unable to obtain a BluetoothAdapter.");
+            return false;
         }
 
         return true;

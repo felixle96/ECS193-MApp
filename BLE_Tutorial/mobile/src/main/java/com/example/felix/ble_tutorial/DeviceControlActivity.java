@@ -158,7 +158,7 @@ public class DeviceControlActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.gatt_services_characteristics);
+        setContentView(R.layout.activity_device_control);
 
         /**
          * Get the intent that started this activity, implication that
@@ -176,7 +176,7 @@ public class DeviceControlActivity extends AppCompatActivity {
         mDataField = (TextView) findViewById(R.id.data_value);
 
         getSupportActionBar().setTitle(mDeviceName);
-        getActionBar().setDisplayHomeAsUpEnabled(true);
+        //getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
     }
