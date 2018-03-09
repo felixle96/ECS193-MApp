@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
@@ -15,6 +16,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,6 +32,13 @@ public class BluetoothLeService extends Service {
     private BluetoothGatt mBluetoothGatt;
     private String mBluetoothDeviceAddress;
     private int mConnectionState = STATE_DISCONNECTED;
+
+    private List<BluetoothGattCharacteristic> myCharas;
+
+    private static final UUID CCCD = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
+    int myX = 1;
+    int currentCharIndex = 0;
+    private String currData;
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -81,8 +90,71 @@ public class BluetoothLeService extends Service {
                                          BluetoothGattCharacteristic characteristic,
                                          int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+
+                final byte[] data = characteristic.getValue();
+                if (data != null && data.length > 0) {
+                    ByteBuffer floatBuffer = ByteBuffer.wrap(data);
+
+                    currData += String.valueOf(floatBuffer.getFloat())
+                            + " " + String.valueOf(floatBuffer.getFloat()) + " " + String.valueOf(floatBuffer.getFloat())
+                            + " " + String.valueOf(floatBuffer.getFloat()) + "\n";
+
+                    System.out.println("This is the output " + currData);
+
+                    System.out.println("The characteristic is " + characteristic.getUuid());
+
+                    Intent intent = new Intent(ACTION_DATA_AVAILABLE);
+                    intent.putExtra(EXTRA_DATA, currData);
+                //    sendBroadcast(intent);
+//                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+
+//                    if(!myCharas.isEmpty()) {
+//                        BluetoothGattCharacteristic myChar = myCharas.remove(0);
+//                        System.out.println(myChar.getUuid());
+//                        readCharacteristic(myChar);
+//                    }
+
+
+                    if(myX != 17) {
+                        System.out.println(myCharas.get(myX).getUuid());
+                        readCharacteristic(myCharas.get(myX++));
+                    }
+                    else
+                        myX = 1;
+
+                    sendBroadcast(intent);
+
+                }
             }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
+
+            System.out.println("UUID is : " + characteristic.getUuid().toString());
+
+//            final Intent intent = new Intent(ACTION_DATA_AVAILABLE);
+//            intent.putExtra(EXTRA_DATA, Integer.toString(myX++));
+//            sendBroadcast(intent);
+           // broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+
+            BluetoothGattService updatedService = characteristic.getService();
+            myCharas = updatedService.getCharacteristics();
+//            myCharas.remove(0);
+            currData = new String("");
+//            myData.add(new String(""));
+
+            System.out.println("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO! " + myCharas.size());
+
+//            for(BluetoothGattCharacteristic myChara : myCharas) {
+//
+//                if((myChara.getProperties() | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
+//            BluetoothGattCharacteristic myChar = myCharas.remove(0);
+            System.out.println(myCharas.get(myX).getUuid());
+            readCharacteristic(myCharas.get(myX++));
+//                }
+//            }
         }
     };
 
@@ -232,7 +304,7 @@ public class BluetoothLeService extends Service {
 
     /**
      * readCharacteristic()
-     * Request a read on a given {@code BluetoothGattCharacteristic.} The read result is
+     * Request a read on a given {@code B$luetoothGattCharacteristic.} The read result is
      * reported asynchronously through the {@code BluetoothGattCallback#onCharacteristicRead(
      * android.bluetooth.BluetoothGatt, android.bluetooth.BluetoothGattCharacteristic, int)}
      * callback.
@@ -262,6 +334,9 @@ public class BluetoothLeService extends Service {
         }
 
         mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+        BluetoothGattDescriptor descriptor = characteristic.getDescriptor(CCCD);
+        descriptor.setValue(enabled ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE : new byte[]{0x00, 0x00});
+        mBluetoothGatt.writeDescriptor(descriptor);
     }
 
     /**
