@@ -15,6 +15,9 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.util.Log;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +40,11 @@ public class BluetoothLeService extends Service {
 
     private static final UUID CCCD = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     int myX = 1;
+    int myY = 1;
     int currentCharIndex = 0;
+    float[] myFloats = new float[64];
     private String currData;
+    private JSONObject floats = new JSONObject();
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
@@ -95,34 +101,77 @@ public class BluetoothLeService extends Service {
                 if (data != null && data.length > 0) {
                     ByteBuffer floatBuffer = ByteBuffer.wrap(data);
 
-                    currData += String.valueOf(floatBuffer.getFloat())
-                            + " " + String.valueOf(floatBuffer.getFloat()) + " " + String.valueOf(floatBuffer.getFloat())
-                            + " " + String.valueOf(floatBuffer.getFloat()) + "\n";
+//                    currData += String.valueOf(floatBuffer.getFloat())
+//                            + " " + String.valueOf(floatBuffer.getFloat()) + " " + String.valueOf(floatBuffer.getFloat())
+//                            + " " + String.valueOf(floatBuffer.getFloat()) + "\n";
+                    try {
+//                        floats.put("ch" + Integer.toString((myX - 1) * 4 + 0), floatBuffer.getFloat());
+//                        floats.put("ch" + Integer.toString((myX - 1) * 4 + 1), floatBuffer.getFloat());
+//                        floats.put("ch" + Integer.toString((myX - 1) * 4 + 2), floatBuffer.getFloat());
+//                        floats.put("ch" + Integer.toString((myX - 1) * 4 + 3), floatBuffer.getFloat());
+                        myFloats[(myX - 1) * 4 + 0] += floatBuffer.getFloat();
+                        myFloats[(myX - 1) * 4 + 1] += floatBuffer.getFloat();
+                        myFloats[(myX - 1) * 4 + 2] += floatBuffer.getFloat();
+                        myFloats[(myX - 1) * 4 + 3] += floatBuffer.getFloat();
 
-                    System.out.println("This is the output " + currData);
+//                        currData += floats.toString();
 
-                    System.out.println("The characteristic is " + characteristic.getUuid());
+//                        System.out.println("This is the output " + floats.toString());
 
-                    Intent intent = new Intent(ACTION_DATA_AVAILABLE);
-                    intent.putExtra(EXTRA_DATA, currData);
-                //    sendBroadcast(intent);
-//                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+//                        System.out.println("The characteristic is " + characteristic.getUuid());
 
-//                    if(!myCharas.isEmpty()) {
-//                        BluetoothGattCharacteristic myChar = myCharas.remove(0);
-//                        System.out.println(myChar.getUuid());
-//                        readCharacteristic(myChar);
-//                    }
+                        Intent intent = new Intent(ACTION_DATA_AVAILABLE);
+                        intent.putExtra(EXTRA_DATA, currData);
+                        //    sendBroadcast(intent);
+                        //                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+
+                        //                    if(!myCharas.isEmpty()) {
+                        //                        BluetoothGattCharacteristic myChar = myCharas.remove(0);
+                        //                        System.out.println(myChar.getUuid());
+                        //                        readCharacteristic(myChar);
+                        //                    }
 
 
-                    if(myX != 17) {
-                        System.out.println(myCharas.get(myX).getUuid());
-                        readCharacteristic(myCharas.get(myX++));
+//                        System.out.println(myCharas.get(myX).getUuid());
+
+                        if (myX == 16) {
+//                            System.out.println("16 Reads completed!");
+
+                            myX = 1;
+
+                            System.out.println(myY);
+
+                            if(myY == 10){
+                                for(int i = 0; i < 64; i++){
+                                    myFloats[i] /= 10;
+                                    floats.put("ch" + Integer.toString(i), myFloats[i]);
+                                }
+
+                                JSONObject patient = new JSONObject();
+                                patient.put("patient_2", floats);
+
+                                String jsonStr = patient.toString();
+
+                                System.out.println(jsonStr);
+
+                                // Send to server
+//                                new Poster().execute(getString(R.string.insert_reading_url), jsonStr);
+
+                                // Clear json object
+                                floats = new JSONObject();
+                                myY = 1;
+                            }
+                            else
+                                myY++;
+                        }
+                        else {
+                            readCharacteristic(myCharas.get(myX++));
+                        }
+
+                        sendBroadcast(intent);
+                    } catch (Exception e) {
+                        ;
                     }
-                    else
-                        myX = 1;
-
-                    sendBroadcast(intent);
 
                 }
             }
@@ -132,27 +181,29 @@ public class BluetoothLeService extends Service {
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             super.onCharacteristicChanged(gatt, characteristic);
 
-            System.out.println("UUID is : " + characteristic.getUuid().toString());
+//            System.out.println("UUID is : " + characteristic.getUuid().toString());
 
 //            final Intent intent = new Intent(ACTION_DATA_AVAILABLE);
 //            intent.putExtra(EXTRA_DATA, Integer.toString(myX++));
 //            sendBroadcast(intent);
            // broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+//            System.out.println("Notification received!");
 
             BluetoothGattService updatedService = characteristic.getService();
             myCharas = updatedService.getCharacteristics();
 //            myCharas.remove(0);
             currData = new String("");
+
 //            myData.add(new String(""));
 
-            System.out.println("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO! " + myCharas.size());
+//            System.out.println("YOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO! " + myCharas.size());
 
 //            for(BluetoothGattCharacteristic myChara : myCharas) {
 //
 //                if((myChara.getProperties() | BluetoothGattCharacteristic.PROPERTY_READ) > 0) {
 //            BluetoothGattCharacteristic myChar = myCharas.remove(0);
-            System.out.println(myCharas.get(myX).getUuid());
-            readCharacteristic(myCharas.get(myX++));
+//            System.out.println(myCharas.get(myX).getUuid());
+            readCharacteristic(myCharas.get(myX));
 //                }
 //            }
         }
